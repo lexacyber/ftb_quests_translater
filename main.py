@@ -37,22 +37,25 @@ def translate_line(i, file, translated_file, lang_to):
 
 def find_and_translate(file, translated_file, lang_to):
     file = file.readlines()
-    i = 0
-    while i < len(file):
-        if 'description: [' in file[i] and not ']' in file[i]:
-            translated_file.write(file[i])
-            i += 1
-            while ']' not in file[i]:
-                i = translate_line(i, file, translated_file, lang_to)
-            translated_file.write(file[i])  # write the closing bracket line
-            i += 1
-        elif 'description: [' in file[i] and ']' in file[i]:
-            i = translate_line(i, file, translated_file, lang_to)
-        elif 'title:' in file[i]:
-            i = translate_line(i, file, translated_file, lang_to)
+    line = 0
+    total_lines = len(file)
+    while line < total_lines:
+        if line % 200 == 0:
+            print(f"Progress: {line / total_lines * 100:.2f}%")
+        if 'description: [' in file[line] and not ']' in file[line]:
+            translated_file.write(file[line])
+            line += 1
+            while ']' not in file[line]:
+                line = translate_line(line, file, translated_file, lang_to)
+            translated_file.write(file[line])  # write the closing bracket line
+            line += 1
+        elif 'description: [' in file[line] and ']' in file[line]:
+            line = translate_line(line, file, translated_file, lang_to)
+        elif 'title:' in file[line]:
+            line = translate_line(line, file, translated_file, lang_to)
         else:
-            translated_file.write(file[i])
-            i += 1
+            translated_file.write(file[line])
+            line += 1
 
 
 def main():
