@@ -12,7 +12,7 @@ def translate_to(string, lang_to):
         return ''
     trans = re.sub(r'&([0-9]{1,3}|[a-z])', '^^*^^', string)
     tend = re.findall(r'&([0-9]{1,3}|[a-z])', string)
-    trans = str(translator.translate(trans, f'{lang_to}'))
+    trans = str(translator.translate(trans, f'{lang_to}')).replace('"',"''")
     for j in range(trans.count('^^*^^')):
         trans = trans.replace('^^*^^', '&' + tend[j], 1)
     return trans
