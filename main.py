@@ -1,10 +1,11 @@
 import os
 
-from translatepy.translators.yandex import YandexTranslate
+from translatepy import Translator
 import re
 from pathlib import Path
 
-translator = YandexTranslate()
+
+translator = Translator()
 
 
 def translate_to(string, lang_to):
