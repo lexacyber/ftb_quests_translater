@@ -8,69 +8,69 @@ from pathlib import Path
 translator = Translator()
 
 
-def translateto(s, lang_to):
-    trans = re.sub(r'&([0-9]{1,3}|[a-z])', '^^*^^', s)
-    tend = re.findall(r'&([0-9]{1,3}|[a-z])', s)
-    trans = str(translator.translate(trans, f'{lang_to}'))
+def translate_to(string, lang_to):
+    if string == '':
+        return ''
+    trans = re.sub(r'&([0-9]{1,3}|[a-z])', '^^*^^', string)
+    tend = re.findall(r'&([0-9]{1,3}|[a-z])', string)
+    trans = str(translator.translate(trans, f'{lang_to}')).replace('"',"''")
     for j in range(trans.count('^^*^^')):
-        trans = trans.replace('^^*^^', '&'+tend[j], 1)
+        trans = trans.replace('^^*^^', '&' + tend[j], 1)
     return trans
 
 
-def manylines_translate(i, f, a, lang_to):
-    a.write(f[i])
-    i += 1
-    while not (']' in f[i]):
-        if '""' in f[i]:
-            a.write(f[i])
-            i += 1
+def translate_line(i, file, translated_file, lang_to):
+    # Check if line is an image-insertion
+    if file[i].strip().startswith('"{'):
+        translated_file.write(file[i])
+        return i + 1
+
+    indexes = [index for index, element in enumerate(file[i]) if element == '"']
+    if len(indexes) < 2:
+        translated_file.write(file[i])
+        return i + 1
+
+    string = translate_to(file[i][indexes[0] + 1:indexes[-1]], lang_to)
+    translated_file.write(file[i][:indexes[0] + 1] + string + file[i][indexes[-1]:])
+    return i + 1
+
+
+def find_and_translate(file, translated_file, lang_to):
+    file = file.readlines()
+    line = 0
+    total_lines = len(file)
+    while line < total_lines:
+        if line % 200 == 0:
+            print(f"Progress: {line / total_lines * 100:.2f}%")
+        if 'description: [' in file[line] and not ']' in file[line]:
+            translated_file.write(file[line])
+            line += 1
+            while ']' not in file[line]:
+                line = translate_line(line, file, translated_file, lang_to)
+            translated_file.write(file[line])  # write the closing bracket line
+            line += 1
+        elif 'description: [' in file[line] and ']' in file[line]:
+            line = translate_line(line, file, translated_file, lang_to)
+        elif 'title:' in file[line]:
+            line = translate_line(line, file, translated_file, lang_to)
         else:
-            indexes = [index for index, element in enumerate(f[i]) if element == '"']
-            s = translateto(f[i][indexes[0]+1:indexes[-1]], lang_to)
-            a.write(f[i][:indexes[0]+1] + s + f[i][indexes[-1]:])
-            i += 1
-    return i
-
-
-def oneline_translate(i, f, a, lang_to):
-    indexes = [index for index, element in enumerate(f[i]) if element == '"']
-    s = translateto(f[i][indexes[0] + 1: indexes[-1]], lang_to)
-    a.write(f[i][:indexes[0] + 1] + s + f[i][indexes[-1]:])
-
-
-def notranslate(i, f, a):
-    a.write(f[i])
-
-
-def find_and_translate(f, a, lang_to):
-    f = f.readlines()
-    i = 0
-    while i < len(f):
-        if 'description: [' in f[i] and not (']' in f[i]):
-            i = manylines_translate(i, f, a, lang_to)
-        elif 'description: [' in f[i] and ']' in f[i]:
-            oneline_translate(i, f, a, lang_to)
-            i += 1
-        elif 'title:' in f[i]:
-            oneline_translate(i, f, a, lang_to)
-            i += 1
-        else:
-            notranslate(i, f, a)
-            i += 1
+            translated_file.write(file[line])
+            line += 1
 
 
 def main():
-    target = input('Enter the path to the file folder (for example: C:/.../quests/charapters)')
-    lang_to = input('enter into which language to translate using abbreviated or full names(for example: ru or Russian)')
+    target = input('Enter the path to the file folder (example: C:/.../quests/chapters)\n')
+    lang_to = input('Enter into which language to translate using abbreviated or full names (example: ru or Russian): ')
     quest_path = Path(target)
-    target2 = target.replace('chapters', 'chapters-translate')
-    if not (os.path.isdir(target2)):
-        os.mkdir(target2)
+    target_translated = target.replace('chapters', 'chapters-translate')
+    if not (os.path.isdir(target_translated)):
+        os.mkdir(target_translated)
     for input_path in quest_path.rglob("*.snbt"):
-        f = open(f'{input_path}'.replace("\\", "/"), encoding='utf-8')
-        a = open(f'{input_path}'.replace('chapters', 'chapters-translate').replace("\\", "/",), 'w', encoding='utf-8')
-        print(f' Translating - {input_path}')
-        find_and_translate(f, a, lang_to)
+        file = open(f'{input_path}'.replace("\\", "/"), encoding='utf-8')
+        translated_file = open(f'{input_path}'.replace('chapters', 'chapters-translate').replace("\\", "/", ), 'w',
+                               encoding='utf-8')
+        print(f'\tTranslating: {input_path}')
+        find_and_translate(file, translated_file, lang_to)
 
 
 if __name__ == '__main__':
